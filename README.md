@@ -9,7 +9,10 @@ The target system can be Linux or Windows.
 `raspberrypi.sshrecipe`:
 ```bash
 IP=192.168.0.70
-USER=pi # for root-only systems, omit this line.
+# Note: Comments can only start at the beginning of a line. If '#' is found later, it will be considered part of the arguments.
+
+# For root-only systems, omit this line.
+USER=pi
 ARM=1
 
 mkdir -p example-directory
@@ -33,7 +36,9 @@ LaunchTmux session-name . ./myscript.sh --var 1
 
 # Sets a local variable with the given name. Always runs (local only, no network roundtrips). These are *not* environment variables.
 Set EXAMPLE value
-EXAMPLE=value # alternate syntax
+
+# Alternate syntax for Set
+EXAMPLE=value
 
 # Variables are usually global, but you can make them specific to the current script. Once the currently called script returns to the caller, the caller will see its intact previous variables.
 SetLocal EXAMPLE value
@@ -63,6 +68,7 @@ IfNotDef EXAMPLE ./example.sh
 sudo apt-get clean [clean-after-libreoffice-removal, 2]
 
 # Not the real sudo, simply instructs RemoteConfigurator to SSH as root for this instruction rather than the usual %USER%
+# Note that %USER% and %HOME% are still those of the normal user, not root.
 sudo apt update
 
 # If "snap remove" returns exit code 127, then treat it as a success even if it's non-zero. Comma separated.
