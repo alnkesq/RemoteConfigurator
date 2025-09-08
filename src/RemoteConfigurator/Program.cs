@@ -5,7 +5,20 @@ namespace RemoteConfigurator;
 
 internal class Program
 {
-    private static async Task Main(string[] args)
+    private static async Task<int> Main(string[] args)
+    {
+        try
+        {
+            await MainCore(args);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            return 1;
+        }
+    }
+    private static async Task MainCore(string[] args)
     {
         var path = args.FirstOrDefault(x => !x.StartsWith("--", StringComparison.Ordinal));
 
