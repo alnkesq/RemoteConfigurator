@@ -1,0 +1,20 @@
+﻿IP=.
+WINDOWS=1
+cd %LOCAL_PATH%
+
+# Tweaks.reg
+
+powershell -NoProfile -ExecutionPolicy Unrestricted ./InstallWinGet.ps1
+
+# TODO: %PATH% update is not propagated. You will need to relaunch a new terminal so that the subsequent winget commands work.
+
+winget install Microsoft.PowerShell       --scope machine
+winget install 7zip.7zip                  --scope machine
+winget install Git.Git                    --scope machine
+winget install BurntSushi.ripgrep.MSVC    --scope machine
+winget install Rclone.Rclone              --scope machine
+
+# Now that PowerShell 7+ is installed, we can call .ps1 files directly.
+# Example.ps1
+
+
