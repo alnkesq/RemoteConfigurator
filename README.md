@@ -115,8 +115,6 @@ WINDOWS=1
 # All subsequent commands will run from the directory that the .sshrecipe file resides in (otherwise the default would be "C:\Users\YourName" for consistency with SSH)
 cd %LOCAL_PATH%
 
-winget install Microsoft.VisualStudioCode --scope machine
-
 # Applies a .reg file
 MySettings.reg
 
