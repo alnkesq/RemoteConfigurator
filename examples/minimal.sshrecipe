@@ -1,0 +1,39 @@
+﻿
+Set SSH_PUBKEY "ssh-ed25519 your-ssh-public-key key-nickname"
+
+
+# At this point, pubkey SSH login might not have been configured yet.
+# The user will have to interactively enter the password.
+bash -c "mkdir -p %HOME%/.ssh && echo %SSH_PUBKEY% >> %HOME%/.ssh/authorized_keys" [14]
+
+# Until we set up root's .ssh/authorized_keys, we can't "ssh root@IP" directly
+# We print a message so that the user knows this is sudo requesting their password (again).
+IfDef USER bash -c "echo Enter password for standard user into sudo:" [6]
+IfDef USER bash -c "sudo -S cp -r %HOME%/.ssh %ROOT_HOME%/.ssh" [6]
+
+
+sudo Upload disable-ssh-password-authentication.sh %ROOT_HOME% [3]
+sudo bash %ROOT_HOME%/disable-ssh-password-authentication.sh [3]
+sudo rm %ROOT_HOME%/disable-ssh-password-authentication.sh
+sudo systemctl reload ssh
+
+
+sudo apt-get remove --purge "libreoffice*" -y
+sudo apt-get remove --purge "thunderbird*" -y
+sudo apt-get clean [clean-libreoffice, 2]
+sudo apt-get autoremove -y [autoremove-libreoffice, 2]
+
+sudo AllowExitCode 127 snap remove thunderbird [2]
+
+sudo apt update
+IfNotDef NO_UPDATES sudo apt upgrade -y
+
+IfNotDef NO_UPDATES sudo reboot [reboot-after-upgrade]
+IfNotDef NO_UPDATES Sleep 60 [sleep-after-updade-reboot]
+IfNotDef NO_UPDATES AwaitReconnect [await-update-reboot]
+
+sudo apt-get install tmux nano git htop curl 7zip unzip -y
+sudo Upload 7z-fallback.sh %ROOT_HOME%
+sudo bash %ROOT_HOME%/7z-fallback.sh
+sudo rm %ROOT_HOME%/7z-fallback.sh
+

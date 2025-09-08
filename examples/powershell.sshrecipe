@@ -1,0 +1,14 @@
+﻿IfNotDef ARM Download https://github.com/PowerShell/PowerShell/releases/download/v7.4.5/powershell-7.4.5-linux-x64.tar.gz powershell.tar.gz [download-powershell, 6]
+IfDef ARM  Download https://github.com/PowerShell/PowerShell/releases/download/v7.4.5/powershell-7.4.5-linux-arm64.tar.gz powershell.tar.gz [download-powershell, 6]
+
+mkdir -p %HOME%/powershell
+tar zxf powershell.tar.gz -C %HOME%/powershell  [2]
+rm powershell.tar.gz
+
+sudo chmod +x %HOME%/powershell/pwsh
+sudo CreateSymLink %HOME%/powershell/pwsh /bin/pwsh
+sudo chmod +x /bin/pwsh
+
+
+AppendFile %HOME%/.bashrc "export POWERSHELL_TELEMETRY_OPTOUT=1"
+IfDef USER Sudo AppendFile %ROOT_HOME%/.bashrc "export POWERSHELL_TELEMETRY_OPTOUT=1"

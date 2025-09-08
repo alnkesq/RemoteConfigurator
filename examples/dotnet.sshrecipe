@@ -1,0 +1,22 @@
+﻿
+Set DOTNET_FULL_VERSION 9.0.201
+SetVersion %DOTNET_FULL_VERSION%
+IfNotDef ARM Download https://builds.dotnet.microsoft.com/dotnet/Sdk/%DOTNET_FULL_VERSION%/dotnet-sdk-%DOTNET_FULL_VERSION%-linux-x64.tar.gz    dotnet-sdk.tar.gz [download-dotnet]
+IfDef ARM Download    https://builds.dotnet.microsoft.com/dotnet/Sdk/%DOTNET_FULL_VERSION%/dotnet-sdk-%DOTNET_FULL_VERSION%-linux-arm64.tar.gz  dotnet-sdk.tar.gz [download-dotnet]
+
+
+rm -rf %HOME%/dotnet
+mkdir -p %HOME%/dotnet
+tar zxf dotnet-sdk.tar.gz -C %HOME%/dotnet 
+rm dotnet-sdk.tar.gz
+
+sudo CreateSymLink %HOME%/dotnet/dotnet /bin/dotnet
+sudo chmod +x /bin/dotnet
+
+
+AppendFile %HOME%/.bashrc "export PATH=$PATH:%HOME%/.dotnet/tools" [2]
+AppendFile %HOME%/.bashrc "export DOTNET_ROOT=%HOME%/dotnet" [2]
+AppendFile %HOME%/.bashrc "export DOTNET_CLI_TELEMETRY_OPTOUT=1"
+IfDef USER Sudo AppendFile %ROOT_HOME%/.bashrc "export PATH=$PATH:%HOME%/.dotnet/tools" [2]
+IfDef USER Sudo AppendFile %ROOT_HOME%/.bashrc "export DOTNET_ROOT=%HOME%/dotnet" [2]
+IfDef USER Sudo AppendFile %ROOT_HOME%/.bashrc "export DOTNET_CLI_TELEMETRY_OPTOUT=1"
