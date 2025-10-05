@@ -730,7 +730,12 @@ public record ScriptLine
 {
     //public string? SetVariableName;
     //public string? SetVariableValue;
-    public string[] Arguments;
+    public required string[] Arguments;
     public string? Key;
     public string? Bump;
+
+    public override string ToString()
+    {
+        return string.Join(", ", Arguments);
+    }
 }
