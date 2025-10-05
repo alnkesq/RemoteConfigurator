@@ -1,8 +1,12 @@
-﻿IfNotDef ARM Download https://github.com/duckdb/duckdb/releases/download/v1.3.2/duckdb_cli-linux-amd64.zip duckdb-cli.zip
-IfNotDef ARM Download https://github.com/duckdb/duckdb/releases/download/v1.3.2/libduckdb-linux-amd64.zip libduckdb.zip
+﻿Set DUCKDB_FULL_VERSION v1.4.0
 
-IfDef ARM Download https://github.com/duckdb/duckdb/releases/download/v1.3.2/duckdb_cli-linux-arm64.zip duckdb-cli.zip
-IfDef ARM Download https://github.com/duckdb/duckdb/releases/download/v1.3.2/libduckdb-linux-arm64.zip libduckdb.zip
+SetVersion %DUCKDB_FULL_VERSION%
+IfNotDef ARM Download https://github.com/duckdb/duckdb/releases/download/%DUCKDB_FULL_VERSION%/duckdb_cli-linux-amd64.zip duckdb-cli.zip
+IfNotDef ARM Download https://github.com/duckdb/duckdb/releases/download/%DUCKDB_FULL_VERSION%/libduckdb-linux-amd64.zip libduckdb.zip
+
+IfDef ARM Download https://github.com/duckdb/duckdb/releases/download/%DUCKDB_FULL_VERSION%/duckdb_cli-linux-arm64.zip duckdb-cli.zip
+IfDef ARM Download https://github.com/duckdb/duckdb/releases/download/%DUCKDB_FULL_VERSION%/libduckdb-linux-arm64.zip libduckdb.zip
+
 
 unzip -o duckdb-cli.zip -d duckdb
 unzip -o libduckdb.zip -d duckdb
