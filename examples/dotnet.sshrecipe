@@ -1,5 +1,5 @@
 ﻿
-Set DOTNET_FULL_VERSION 9.0.201
+Set DOTNET_FULL_VERSION 10.0.100
 SetVersion %DOTNET_FULL_VERSION%
 IfNotDef ARM Download https://builds.dotnet.microsoft.com/dotnet/Sdk/%DOTNET_FULL_VERSION%/dotnet-sdk-%DOTNET_FULL_VERSION%-linux-x64.tar.gz    dotnet-sdk.tar.gz [download-dotnet]
 IfDef ARM Download    https://builds.dotnet.microsoft.com/dotnet/Sdk/%DOTNET_FULL_VERSION%/dotnet-sdk-%DOTNET_FULL_VERSION%-linux-arm64.tar.gz  dotnet-sdk.tar.gz [download-dotnet]
