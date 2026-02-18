@@ -101,7 +101,9 @@ public class ScriptContext
     }
     public List<string> ScriptLocationStack = new();
     internal StringBuilder? ExportShBuilder;
+    internal StringBuilder? ExportTmuxBuilder;
     private string? ExportShCurrentDirectory;
+    private string? ExportTmuxCurrentDirectory;
 
     private async Task ExecuteAsync(string currentScriptPath, ScriptLine line, CancellationToken ct = default)
     {
@@ -257,7 +259,8 @@ public class ScriptContext
                 {
                     await KillTmuxSession(machine, name, ct);
                 }
-                if (SkipTmux && !forceRestart) return;
+
+                if (SkipTmux && !forceRestart && ExportTmuxBuilder == null) return;
                 if (KillTmuxSessions.Contains(name)) return;
 
                 var workdir = GetFullRemotePath(tmuxargs[1]);
@@ -354,18 +357,30 @@ public class ScriptContext
                         ExportShCurrentDirectory = pwd;
                     }
                     if (allowExitCodes.Length != 0) ExportShBuilder.AppendLineUnix("set +e");
-                    for (int i = 0; i < rootArgs.Length; i++)
-                    {
-                        if (i != 0) ExportShBuilder.Append(' ');
-                        var arg = rootArgs[i];
-                        ExportShBuilder.AppendBashEscaped(arg);
-                    }
+                    ExportShBuilder.AppendBashEscaped(rootArgs);
                     ExportShBuilder.Append('\n');
                     if (allowExitCodes.Length != 0) ExportShBuilder.AppendLineUnix("set -e");
                     // TODO: check if exit code is one of the allowed ones instead of allowing everything
 
                 }
-                else
+
+
+                if (ExportTmuxBuilder != null)
+                {
+                    if (pwd != null && ExportTmuxCurrentDirectory != pwd)
+                    {
+                        ExportTmuxBuilder.Append("cd ");
+                        ExportTmuxBuilder.AppendBashEscaped(pwd!);
+                        ExportTmuxBuilder.Append('\n');
+                        ExportTmuxCurrentDirectory = pwd;
+                    }
+                    ExportTmuxBuilder.AppendBashEscaped(rootArgs);
+                    ExportTmuxBuilder.Append('\n');
+
+                }
+
+                
+                if (ExportShBuilder == null && ExportTmuxBuilder == null)
                 {
                     if (!sudo && !IsLocal() && pwd == GetVariableNormalized(VariableHome)) pwd = null;
 

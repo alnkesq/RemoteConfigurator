@@ -188,6 +188,16 @@ internal static class ExtensionMethods
         sb.Append('\n');
     }
 
+    public static void AppendBashEscaped(this StringBuilder sb, string[] args)
+    {
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (i != 0) sb.Append(' ');
+            var arg = args[i];
+            sb.AppendBashEscaped(arg);
+        }
+    }
+
     public static void AppendBashEscaped(this StringBuilder sb, string arg)
     {
         if (arg.AsSpan().ContainsAny(@"$ '\"))

@@ -51,7 +51,9 @@ internal class Program
             ctx.InlineTmux = GetArgByName("--inline-tmux");
             ctx.PrintTmuxSession = GetArgByName("--print-tmux");
             var exportShPath = GetArgByName("--export-sh");
+            var exportTmuxPath = GetArgByName("--export-tmux");
             ctx.ExportShBuilder = exportShPath != null ? new("#!/usr/bin/env bash\n# Generated via RemoteConfigurator\nset -e\n") : null;
+            ctx.ExportTmuxBuilder = exportTmuxPath != null ? new("#!/usr/bin/env bash\n# Generated via RemoteConfigurator\n") : null;
 
             if (GetArgByName("--quit-process") is { } quitProcess)
             {
@@ -64,12 +66,16 @@ internal class Program
             }
 
             ctx.ListTmuxSessions = HasArg("--list-tmux");
-            ctx.SkipTmux = HasArg("--skip-tmux") || (ctx.PrintTmuxSession != null || ctx.KillTmuxSessions.Any() || ctx.InlineTmux != null || ctx.KillProcess != null || ctx.ListTmuxSessions);
+            ctx.SkipTmux = HasArg("--skip-tmux") || exportTmuxPath != null || ctx.PrintTmuxSession != null || ctx.KillTmuxSessions.Any() || ctx.InlineTmux != null || ctx.KillProcess != null || ctx.ListTmuxSessions;
 
             await ctx.RunAsync(path);
             if (exportShPath != null)
             {
                 System.IO.File.WriteAllText(exportShPath, ctx.ExportShBuilder!.ToString());
+            }
+            if (exportTmuxPath != null)
+            {
+                System.IO.File.WriteAllText(exportTmuxPath, ctx.ExportTmuxBuilder!.ToString());
             }
             await ctx.MaybeRunCustomTmuxActionsAsync();
 
