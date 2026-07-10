@@ -72,6 +72,7 @@ internal class Program
                 }
             }
 
+            var containerCommand = GetArgByName("--container-command-name") ?? Environment.GetEnvironmentVariable("ALNKESQ_REMOTE_CONFIGURATOR_CONTAINER_COMMAND_NAME") ?? "docker";
             ctx.ExportShBuilder = exportShPath != null ? new("#!/usr/bin/env bash\n# Generated via RemoteConfigurator\nset -e\n") : null;
             ctx.ExportTmuxBuilder = exportTmuxPath != null ? new("#!/usr/bin/env bash\n# Generated via RemoteConfigurator\n") : null;
             ctx.ExportDockerfileBuilder = exportDockerfilePath != null ? new() : null;
@@ -119,16 +120,16 @@ internal class Program
             if (buildContainer)
             {
                 var imageName = Path.GetFileNameWithoutExtension(path);
-                var psi = new ProcessStartInfo("podman", ["build", "-t", imageName, "-f", "./" + Path.GetFileName(exportDockerfilePath)!]);
+                var psi = new ProcessStartInfo(containerCommand, ["build", "-t", imageName, "-f", "./" + Path.GetFileName(exportDockerfilePath)!]);
                 psi.WorkingDirectory = Path.GetDirectoryName(exportDockerfilePath);
                 psi.UseShellExecute = false;
                 using var proc = Process.Start(psi)!;
                 await proc.WaitForExitAsync();
                 if (proc.ExitCode != 0)
-                    throw new Exception("podman build returned exit code " + proc.ExitCode);
+                    throw new Exception($"{containerCommand} build returned exit code {proc.ExitCode}");
                 Console.WriteLine("Created image: " + imageName);
                 Console.WriteLine("Use");
-                Console.WriteLine("    podman run --rm -it " + imageName + " bash");
+                Console.WriteLine($"    {containerCommand} run --rm -it {imageName} bash");
             }
 
         }
