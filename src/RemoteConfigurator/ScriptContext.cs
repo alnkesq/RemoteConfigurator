@@ -327,13 +327,14 @@ public class ScriptContext
 
                 if (ExportDockerfileBuilder != null)
                 {
+                    var dockerDirectory = Path.GetDirectoryName(ExportDockerfilePath)!;
+                    var normalizedRelativeSourcePath = Path.GetRelativePath(Path.GetDirectoryName(MainScriptPath)!, sourcePath).ToLowerInvariant();
+                    var mangledName = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(normalizedRelativeSourcePath))).Substring(0, 8) + "-" + Path.GetFileName(sourcePath);
+
                     if (File.Exists(sourcePath))
                     {
                         ExportDockerfileBuilder.Append("COPY ");
-                        var dockerDirectory = Path.GetDirectoryName(ExportDockerfilePath)!;
-                        var normalizedRelativeSourcePath = Path.GetRelativePath(Path.GetDirectoryName(MainScriptPath)!, sourcePath).ToLowerInvariant();
-                        var mangledName = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(normalizedRelativeSourcePath))).Substring(0, 8) + "-" + Path.GetFileName(sourcePath);
-                        File.Copy(sourcePath, Path.Combine(dockerDirectory, mangledName), true);
+                        MirrorFile(new FileInfo(sourcePath), new FileInfo(Path.Combine(dockerDirectory, mangledName)));
                         ExportDockerfileBuilder.AppendDockerEscaped(mangledName);
                         ExportDockerfileBuilder.Append(" ");
                         var realDestPath = copyAs ? dest : (dest + "/" + Path.GetFileName(sourcePath));
@@ -348,7 +349,14 @@ public class ScriptContext
                     }
                     else
                     {
-                        throw new NotImplementedException("TODO: handle directories in COPY");
+                        ExportDockerfileBuilder.Append("COPY ");
+
+                        MirrorDirectory(new DirectoryInfo(sourcePath), new DirectoryInfo(Path.Combine(dockerDirectory, mangledName)));
+
+                        ExportDockerfileBuilder.AppendDockerEscaped(mangledName);
+                        ExportDockerfileBuilder.Append(" ");
+                        ExportDockerfileBuilder.AppendDockerEscaped(dest);
+                        ExportDockerfileBuilder.AppendLineUnix();
                     }
 
                 }
@@ -445,7 +453,7 @@ public class ScriptContext
 
                 }
 
-                
+
                 if (!IsExportingCode)
                 {
                     if (!sudo && !IsLocal() && pwd == GetVariableNormalized(VariableHome)) pwd = null;
@@ -473,6 +481,53 @@ public class ScriptContext
             alreadyExecutedCommands!.Add(commandKeyStr);
             alreadyExecutedCommandsFile!.WriteLine(commandKeyStr);
         }
+    }
+
+    private void MirrorDirectory(DirectoryInfo sourceDirectory, DirectoryInfo destinationDirectory)
+    {
+        destinationDirectory.Create();
+
+        var keep = new HashSet<string>();
+        foreach (var sourceEntry in sourceDirectory.EnumerateFileSystemInfos())
+        {
+            keep.Add(sourceEntry.Name);
+
+            var destinationEntryPath = Path.Combine(destinationDirectory.FullName, sourceEntry.Name);
+            if (sourceEntry is DirectoryInfo sourceEntryDirectory)
+            {
+                MirrorDirectory(sourceEntryDirectory, new DirectoryInfo(destinationEntryPath));
+            }
+            else
+            {
+                var sourceEntryFile = (FileInfo)sourceEntry;
+                var destinationEntryFile = new FileInfo(destinationEntryPath);
+                MirrorFile(sourceEntryFile, destinationEntryFile);
+            }
+        }
+
+
+
+        foreach (var oldEntry in destinationDirectory.EnumerateFileSystemInfos())
+        {
+            if (keep.Contains(oldEntry.Name)) continue;
+            if (oldEntry is DirectoryInfo oldEntryDirectory) oldEntryDirectory.Delete(true);
+            else ((FileInfo)oldEntry).Delete();
+        }
+
+
+    }
+
+    private static void MirrorFile(FileInfo source, FileInfo destination)
+    {
+        if (
+            destination.Exists &&
+            destination.Length == source.Length &&
+            Math.Abs((destination.LastWriteTimeUtc - source.LastWriteTimeUtc).TotalSeconds) < 1
+            )
+            return;
+
+        Console.Error.WriteLine("Copying: " + source.FullName + " -> " + destination.FullName);
+        source.CopyTo(destination.FullName);
     }
 
 
