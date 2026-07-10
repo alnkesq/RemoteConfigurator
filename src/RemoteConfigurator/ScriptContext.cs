@@ -434,6 +434,8 @@ public class ScriptContext
                     ExportDockerfileBuilder.Append("RUN ");
                     ExportDockerfileBuilder.AppendDockerEscaped(rootArgs);
                     if (allowExitCodes.Length != 0) ExportDockerfileBuilder.Append(" || true");
+                    if (bump != null)
+                        ExportDockerfileBuilder.Append(" # bump: " + bump);
                     ExportDockerfileBuilder.AppendLineUnix();
                     // TODO: check if exit code is one of the allowed ones instead of allowing everything
 
