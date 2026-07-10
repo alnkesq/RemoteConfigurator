@@ -77,7 +77,7 @@ internal class Program
             ctx.ExportTmuxBuilder = exportTmuxPath != null ? new("#!/usr/bin/env bash\n# Generated via RemoteConfigurator\n") : null;
             ctx.ExportDockerfileBuilder = exportDockerfilePath != null ? new() : null;
             ctx.ExportDockerfilePath = exportDockerfilePath;
-            ctx.MainScriptPath = path;
+            ctx.MainScriptPath = Path.GetFullPath(path);
 
             if (ctx.ExportShBuilder != null)
             {
