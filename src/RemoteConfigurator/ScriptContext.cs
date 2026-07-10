@@ -57,7 +57,7 @@ public class ScriptContext
 
         var ip = GetVariableMandatory(VariableIp);
 
-        if (alreadyExecutedCommands == null && ExportShBuilder == null)
+        if (alreadyExecutedCommands == null && !IsExportingCode)
         {
             var path = Path.Combine(Environment.GetEnvironmentVariable("ALNKESQ_REMOTE_CONFIGURATOR_ALREADY_EXECUTED_DIRECTORY") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Alnkesq", "RemoteConfigurator", "AlreadyExecuted"), (IsLocal() ? Environment.GetEnvironmentVariable(IsWindows() ? "ComputerName" : "HOSTNAME") : ip) + ".txt");
             if (File.Exists(path))
@@ -104,6 +104,7 @@ public class ScriptContext
     internal StringBuilder? ExportTmuxBuilder;
     private string? ExportShCurrentDirectory;
     private string? ExportTmuxCurrentDirectory;
+    public bool IsExportingCode => ExportShBuilder != null || ExportTmuxBuilder != null;
 
     private async Task ExecuteAsync(string currentScriptPath, ScriptLine line, CancellationToken ct = default)
     {
@@ -220,22 +221,26 @@ public class ScriptContext
         }
         if (TryConsume(rootArgs, "Sleep", out var sleepAmount))
         {
-            await Task.Delay(int.Parse(sleepAmount[0]) * 1000, ct);
+            if (!IsExportingCode)
+                await Task.Delay(int.Parse(sleepAmount[0]) * 1000, ct);
         }
         else if (TryConsume(rootArgs, "AwaitReconnect", out _))
         {
-            while (true)
+            if (!IsExportingCode)
             {
-                Console.Error.WriteLine("Awaiting reconnection...");
-                try
+                while (true)
                 {
-                    var r = await GetMachine().TryRunAsync(null, ["echo", "1"], sudo: false, ct);
-                    if (r.ExitCode != 0) throw new Exception(r.ToString());
-                    break;
-                }
-                catch (Exception)
-                {
-                    await Task.Delay(30000, ct);
+                    Console.Error.WriteLine("Awaiting reconnection...");
+                    try
+                    {
+                        var r = await GetMachine().TryRunAsync(null, ["echo", "1"], sudo: false, ct);
+                        if (r.ExitCode != 0) throw new Exception(r.ToString());
+                        break;
+                    }
+                    catch (Exception)
+                    {
+                        await Task.Delay(30000, ct);
+                    }
                 }
             }
         }
@@ -297,11 +302,13 @@ public class ScriptContext
 
             async Task UploadCoreAsync(string sourcePath, string dest, bool copyAs, string[] extraArgs)
             {
+                
                 if (ExportShBuilder != null)
                 {
                     ExportShBuilder.AppendLineUnix("# Omitted upload: " + sourcePath + " to " + dest);
-                    return;
                 }
+
+                if (IsExportingCode) return;
                 if (string.IsNullOrWhiteSpace(sourcePath) || sourcePath is "/" or "\\") throw new ArgumentException();
                 sourcePath = Path.Combine(Path.GetDirectoryName(currentScriptPath)!, sourcePath);
                 var destPath = GetFullRemotePath(dest);
@@ -380,7 +387,7 @@ public class ScriptContext
                 }
 
                 
-                if (ExportShBuilder == null && ExportTmuxBuilder == null)
+                if (!IsExportingCode)
                 {
                     if (!sudo && !IsLocal() && pwd == GetVariableNormalized(VariableHome)) pwd = null;
 
