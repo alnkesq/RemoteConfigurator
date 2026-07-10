@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -102,9 +103,14 @@ public class ScriptContext
     public List<string> ScriptLocationStack = new();
     internal StringBuilder? ExportShBuilder;
     internal StringBuilder? ExportTmuxBuilder;
+    internal StringBuilder? ExportDockerfileBuilder;
+    internal string? ExportDockerfilePath;
     private string? ExportShCurrentDirectory;
+    private string? ExportDockerfileCurrentDirectory;
     private string? ExportTmuxCurrentDirectory;
-    public bool IsExportingCode => ExportShBuilder != null || ExportTmuxBuilder != null;
+    internal string? MainScriptPath;
+
+    public bool IsExportingCode => ExportShBuilder != null || ExportTmuxBuilder != null || ExportDockerfileBuilder != null;
 
     private async Task ExecuteAsync(string currentScriptPath, ScriptLine line, CancellationToken ct = default)
     {
@@ -302,19 +308,49 @@ public class ScriptContext
 
             async Task UploadCoreAsync(string sourcePath, string dest, bool copyAs, string[] extraArgs)
             {
-                
+                if (string.IsNullOrWhiteSpace(sourcePath) || sourcePath is "/" or "\\") throw new ArgumentException();
+                sourcePath = Path.Combine(Path.GetDirectoryName(currentScriptPath)!, sourcePath);
+                var destPath = GetFullRemotePath(dest);
+
+                var shouldChmodX = sourcePath.EndsWith(".sh", StringComparison.Ordinal);
                 if (ExportShBuilder != null)
                 {
                     ExportShBuilder.AppendLineUnix("# Omitted upload: " + sourcePath + " to " + dest);
                 }
 
+                if (ExportDockerfileBuilder != null)
+                {
+                    if (File.Exists(sourcePath))
+                    {
+                        ExportDockerfileBuilder.Append("COPY ");
+                        var dockerDirectory = Path.GetDirectoryName(ExportDockerfilePath)!;
+                        var normalizedRelativeSourcePath = Path.GetRelativePath(Path.GetDirectoryName(MainScriptPath)!, sourcePath).ToLowerInvariant();
+                        var mangledName = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(normalizedRelativeSourcePath))).Substring(0, 8) + "-" + Path.GetFileName(sourcePath);
+                        File.Copy(sourcePath, Path.Combine(dockerDirectory, mangledName), true);
+                        ExportDockerfileBuilder.AppendDockerEscaped(mangledName);
+                        ExportDockerfileBuilder.Append(" ");
+                        var realDestPath = copyAs ? dest : (dest + "/" + Path.GetFileName(sourcePath));
+                        ExportDockerfileBuilder.AppendDockerEscaped(realDestPath);
+                        ExportDockerfileBuilder.AppendLineUnix();
+                        if (shouldChmodX)
+                        {
+                            ExportDockerfileBuilder.Append("RUN chmod +x ");
+                            ExportDockerfileBuilder.AppendDockerEscaped(realDestPath);
+                            ExportDockerfileBuilder.AppendLineUnix();
+                        }
+                    }
+                    else
+                    {
+                        throw new NotImplementedException("TODO: handle directories in COPY");
+                    }
+
+                }
+
                 if (IsExportingCode) return;
-                if (string.IsNullOrWhiteSpace(sourcePath) || sourcePath is "/" or "\\") throw new ArgumentException();
-                sourcePath = Path.Combine(Path.GetDirectoryName(currentScriptPath)!, sourcePath);
-                var destPath = GetFullRemotePath(dest);
+
                 Console.Error.WriteLine("Uploading " + sourcePath + " to " + destPath);
                 await machine.UploadAsync(sourcePath, destPath, extraArgs, sudo ? "root" : GetVariableMandatory(VariableUserNameOrRoot), copyAs: copyAs, ct: ct);
-                if (sourcePath.EndsWith(".sh", StringComparison.Ordinal))
+                if (shouldChmodX)
                 {
                     if (!copyAs) destPath = destPath + "/" + Path.GetFileName(sourcePath);
                     var r = await machine.TryRunAsync(null, ["chmod", "+x", destPath], sudo, ct);
@@ -371,6 +407,22 @@ public class ScriptContext
 
                 }
 
+                if (ExportDockerfileBuilder != null)
+                {
+                    if (pwd != null && ExportDockerfileCurrentDirectory != pwd)
+                    {
+                        ExportDockerfileBuilder.Append("WORKDIR ");
+                        ExportDockerfileBuilder.AppendDockerEscaped(pwd!);
+                        ExportDockerfileBuilder.AppendLineUnix();
+                        ExportDockerfileCurrentDirectory = pwd;
+                    }
+                    ExportDockerfileBuilder.Append("RUN ");
+                    ExportDockerfileBuilder.AppendDockerEscaped(rootArgs);
+                    if (allowExitCodes.Length != 0) ExportDockerfileBuilder.Append(" || true");
+                    ExportDockerfileBuilder.AppendLineUnix();
+                    // TODO: check if exit code is one of the allowed ones instead of allowing everything
+
+                }
 
                 if (ExportTmuxBuilder != null)
                 {
@@ -378,11 +430,11 @@ public class ScriptContext
                     {
                         ExportTmuxBuilder.Append("cd ");
                         ExportTmuxBuilder.AppendBashEscaped(pwd!);
-                        ExportTmuxBuilder.Append('\n');
+                        ExportTmuxBuilder.AppendLineUnix();
                         ExportTmuxCurrentDirectory = pwd;
                     }
                     ExportTmuxBuilder.AppendBashEscaped(rootArgs);
-                    ExportTmuxBuilder.Append('\n');
+                    ExportTmuxBuilder.AppendLineUnix();
 
                 }
 
@@ -537,7 +589,7 @@ public class ScriptContext
     public bool IsWindows() => GetVariableNormalized(VariableWindows) == "1";
     public bool IsLocal() => GetVariableNormalized(VariableIp) == ".";
 
-    private void SetVariable(string name, string? value, bool local = false)
+    public void SetVariable(string name, string? value, bool local = false)
     {
         var v = local ? scopes.Last() : variables;
 

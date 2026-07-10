@@ -182,10 +182,14 @@ public record CommandResult(int ExitCode, string StdOut, string StdErr)
 
 internal static class ExtensionMethods
 {
+    public static void AppendLineUnix(this StringBuilder sb)
+    {
+        sb.Append('\n');
+    }
     public static void AppendLineUnix(this StringBuilder sb, string t)
     {
         sb.Append(t);
-        sb.Append('\n');
+        sb.AppendLineUnix();
     }
 
     public static void AppendBashEscaped(this StringBuilder sb, string[] args)
@@ -197,7 +201,15 @@ internal static class ExtensionMethods
             sb.AppendBashEscaped(arg);
         }
     }
+    public static void AppendDockerEscaped(this StringBuilder sb, string[] args)
+    {
+        AppendBashEscaped(sb, args);
+    }
 
+    public static void AppendDockerEscaped(this StringBuilder sb, string arg)
+    {
+        AppendBashEscaped(sb, arg);
+    }
     public static void AppendBashEscaped(this StringBuilder sb, string arg)
     {
         if (arg.AsSpan().ContainsAny(@"$ '\"))
