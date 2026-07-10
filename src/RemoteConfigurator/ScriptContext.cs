@@ -527,7 +527,7 @@ public class ScriptContext
             return;
 
         Console.Error.WriteLine("Copying: " + source.FullName + " -> " + destination.FullName);
-        source.CopyTo(destination.FullName);
+        source.CopyTo(destination.FullName, true);
     }
 
 
