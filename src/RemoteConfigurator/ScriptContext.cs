@@ -116,18 +116,25 @@ public class ScriptContext
     {
         var rootArgs = line.Arguments;
 
-        if (TryConsume(rootArgs, "IfDef", out var inner))
+        while (true)
         {
-            var val = GetVariableNormalized(inner[0]);
-            if (val == null) return;
-            rootArgs = inner.Skip(1).ToArray();
+            if (TryConsume(rootArgs, "IfDef", out var inner))
+            {
+                var val = GetVariableNormalized(inner[0]);
+                if (val == null) return;
+                rootArgs = inner.Skip(1).ToArray();
+                continue;
+            }
+            if (TryConsume(rootArgs, "IfNotDef", out var inner2))
+            {
+                var val = GetVariableNormalized(inner2[0]);
+                if (val != null) return;
+                rootArgs = inner2.Skip(1).ToArray();
+                continue;
+            }
+            break;
         }
-        if (TryConsume(rootArgs, "IfNotDef", out var inner2))
-        {
-            var val = GetVariableNormalized(inner2[0]);
-            if (val != null) return;
-            rootArgs = inner2.Skip(1).ToArray();
-        }
+
         rootArgs = rootArgs.Select(x => ExpandVariables(x)).ToArray();
         //Console.Error.WriteLine("Executing: " + string.Join(" ", rootArgs));
 
