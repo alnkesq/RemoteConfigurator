@@ -56,6 +56,8 @@ SetLocal EXAMPLE value
 %LOCAL_PATH% # When running locally, the directory that contains the .sshrecipe file.
 %VERSION% # The script-local SetVersion that was set at the beginning of a callable script.
 %WINDOWS% # Whether the system runs Windows rather than Linux.
+%IS_SH_EXPORT% # Whether this is running as --export-sh
+%IS_DOCKER_EXPORT% # Whether this is running as --export-dockerfile
 
 # Runs a command only if EXAMPLE is set (or not set).
 IfDef    EXAMPLE ./example.sh
@@ -146,9 +148,12 @@ See `examples/` for more examples and reusable scripts (`dotnet.sshrecipe`, `duc
 * `--inline-tmux session-name`: Runs the command specified by the corresponding `LaunchTmux`, but without actual `tmux` (prints real time stderr/stdout)
 * `--print-tmux session-name`: Prints the last few stdout/stderr lines of the `tmux` session with the given name.
 * `--export-sh destination.sh`: Converts the `.sshrecipe` script to a normal `.sh` file that can be run without RemoteConfigurator (without however incremental execution).
+* `--export-dockerfile destination`: Converts the `.sshrecipe` script to a `Dockerfile` that can be run without RemoteConfigurator. `Upload` files will be copied to the `Dockerfile`'s folder with a mangled name.
 * `--quit-process procname`: Terminates (`CTRL+C`) the process with the given name.
 * `--kill-process procname`: Kills the process with the given name.
 * `--list-tmux`: Prints a list of `tmux` sessions running on the remote machine.
 * `--skip-tmux a,b,c`: Skips launch of the specified sessions. Useful during development/debugging to avoid useless roundtrips.
-
+* `--build-container`: Builds a container
 Commands that were already executed are stored in `%AppData%\Alnkesq\RemoteConfigurator\AlreadyExecuted\TARGET-MACHINE-IP.txt`. You can override the directory by setting the `ALNKESQ_REMOTE_CONFIGURATOR_ALREADY_EXECUTED_DIRECTORY` environment variable.
+
+To use `podman` or others instead of `docker`, set `ALNKESQ_REMOTE_CONFIGURATOR_CONTAINER_COMMAND_NAME=podman` or `--container-command-name podman`
